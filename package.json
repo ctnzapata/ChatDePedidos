@@ -1,0 +1,40 @@
+{
+  "name": "whatsapp-pedidos-agente",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agente de IA por WhatsApp para gestionar pedidos de restaurantes y comidas rápidas",
+  "type": "module",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "chat": "tsx src/scripts/chat-simulator.ts",
+    "db:push": "prisma db push",
+    "db:seed": "tsx src/scripts/seed.ts",
+    "db:setup": "prisma db push && tsx src/scripts/seed.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
+    "@fastify/rate-limit": "^11.2.0",
+    "@google/genai": "^2.27.0",
+    "@prisma/client": "^6.19.3",
+    "fastify": "^5.12.5",
+    "pino": "^10.4.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "@vitest/coverage-v8": "^5.0.3",
+    "pino-pretty": "^13.2.0",
+    "prisma": "^6.19.3",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}

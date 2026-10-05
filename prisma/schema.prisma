@@ -1,0 +1,176 @@
+// SQLite para el piloto. Para pasar a PostgreSQL basta con cambiar `provider`
+// y DATABASE_URL: los campos JSON se guardan como texto validado con Zod.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Restaurant {
+  id                    String   @id @default(cuid())
+  slug                  String   @unique
+  name                  String
+  // phone_number_id que Meta envía en cada webhook; identifica al restaurante.
+  whatsappPhoneNumberId String   @unique
+  // WhatsApp del personal del restaurante que recibe avisos de pedidos nuevos.
+  staffPhone            String?
+  address               String
+  timezone              String   @default("America/Bogota")
+  // JSON: [{ "days": [1,2,3], "open": "11:00", "close": "22:00" }]
+  openingHours          String
+  deliveryFee           Int
+  minOrderAmount        Int
+  prepTimeMinutes       Int
+  deliveryTimeMinutes   Int
+  // JSON: ["CASH", "TRANSFER"]
+  paymentMethods        String
+  transferInfo          String?
+  isAcceptingOrders     Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  categories    MenuCategory[]
+  items         MenuItem[]
+  modifiers     MenuModifier[]
+  customers     Customer[]
+  conversations Conversation[]
+  orders        Order[]
+}
+
+model MenuCategory {
+  id           String     @id @default(cuid())
+  restaurantId String
+  name         String
+  sortOrder    Int
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  items        MenuItem[]
+
+  @@unique([restaurantId, name])
+}
+
+model MenuItem {
+  id           String         @id @default(cuid())
+  restaurantId String
+  categoryId   String
+  // Código corto y estable que usa el agente (p. ej. "HAM-DOB").
+  code         String
+  name         String
+  description  String
+  price        Int
+  isAvailable  Boolean        @default(true)
+  sortOrder    Int
+  restaurant   Restaurant     @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  category     MenuCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  modifiers    MenuModifier[]
+
+  @@unique([restaurantId, code])
+}
+
+model MenuModifier {
+  id           String     @id @default(cuid())
+  restaurantId String
+  code         String
+  name         String
+  price        Int
+  isAvailable  Boolean    @default(true)
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  items        MenuItem[]
+
+  @@unique([restaurantId, code])
+}
+
+model Customer {
+  id           String         @id @default(cuid())
+  restaurantId String
+  // wa_id de WhatsApp (número en formato internacional sin "+").
+  phone        String
+  name         String?
+  createdAt    DateTime       @default(now())
+  restaurant   Restaurant     @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  conversation Conversation?
+  orders       Order[]
+
+  @@unique([restaurantId, phone])
+}
+
+model Conversation {
+  id               String     @id @default(cuid())
+  restaurantId     String
+  customerId       String     @unique
+  // "AGENT" (responde la IA) o "HUMAN" (la IA está en pausa para este cliente).
+  mode             String     @default("AGENT")
+  // JSON con carrito, datos de entrega y confirmación pendiente (AgentState).
+  state            String     @default("{}")
+  // JSON con el historial recortado en formato de la API de Claude.
+  history          String     @default("[]")
+  lastInboundAt    DateTime?
+  inputTokens      Int        @default(0)
+  outputTokens     Int        @default(0)
+  cacheReadTokens  Int        @default(0)
+  cacheWriteTokens Int        @default(0)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  restaurant       Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  customer         Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  messages         Message[]
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  // "IN" (del cliente) u "OUT" (enviado por el sistema).
+  direction      String
+  // id del mensaje en WhatsApp; único para descartar reintentos del webhook.
+  waMessageId    String?      @unique
+  type           String
+  body           String
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  restaurantId  String
+  customerId    String
+  // Consecutivo por restaurante, el que ve el cliente ("Pedido #12").
+  number        Int
+  status        String
+  fulfillment   String
+  address       String?
+  addressNotes  String?
+  customerName  String
+  paymentMethod String
+  cashAmount    Int?
+  notes         String?
+  subtotal      Int
+  deliveryFee   Int
+  total         Int
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  customer      Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  items         OrderItem[]
+
+  @@unique([restaurantId, number])
+  @@index([restaurantId, status])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  itemCode  String
+  name      String
+  unitPrice Int
+  quantity  Int
+  // JSON: [{ "code": "EXT-QUE", "name": "Queso extra", "price": 3000 }]
+  modifiers String
+  notes     String?
+  lineTotal Int
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}

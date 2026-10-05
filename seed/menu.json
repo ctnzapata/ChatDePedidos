@@ -1,0 +1,192 @@
+{
+  "restaurant": {
+    "slug": "la-esquina-rapida",
+    "name": "La Esquina Rápida",
+    "whatsappPhoneNumberId": "REEMPLAZAR_CON_PHONE_NUMBER_ID",
+    "staffPhone": null,
+    "address": "Calle 45 # 23-10, Barrio Centro",
+    "timezone": "America/Bogota",
+    "openingHours": [
+      { "days": [0, 1, 2, 3, 4, 5, 6], "open": "11:00", "close": "22:00" }
+    ],
+    "deliveryFee": 5000,
+    "minOrderAmount": 15000,
+    "prepTimeMinutes": 25,
+    "deliveryTimeMinutes": 30,
+    "paymentMethods": ["CASH", "TRANSFER"],
+    "transferInfo": "Nequi o Daviplata al 300 000 0000 a nombre de La Esquina Rápida"
+  },
+  "extras": [
+    { "code": "EXT-QUE", "name": "Queso extra", "price": 3000 },
+    { "code": "EXT-TOC", "name": "Tocineta", "price": 4000 },
+    { "code": "EXT-HUE", "name": "Huevo frito", "price": 2500 },
+    { "code": "EXT-MAD", "name": "Maduro", "price": 2500 },
+    { "code": "EXT-SAL", "name": "Salchicha adicional", "price": 3500 },
+    { "code": "EXT-PAP", "name": "Agrandar papas", "price": 3000 },
+    { "code": "EXT-GUA", "name": "Guacamole", "price": 3500, "isAvailable": false }
+  ],
+  "categories": [
+    {
+      "name": "Hamburguesas",
+      "items": [
+        {
+          "code": "HAM-SEN",
+          "name": "Hamburguesa sencilla",
+          "description": "Carne de res 150 g, queso, lechuga, tomate y salsas de la casa",
+          "price": 18500,
+          "extras": ["EXT-QUE", "EXT-TOC", "EXT-HUE", "EXT-GUA"]
+        },
+        {
+          "code": "HAM-DOB",
+          "name": "Hamburguesa doble",
+          "description": "Doble carne de res, doble queso, tocineta, lechuga, tomate y cebolla caramelizada",
+          "price": 26000,
+          "extras": ["EXT-QUE", "EXT-TOC", "EXT-HUE", "EXT-GUA"]
+        },
+        {
+          "code": "HAM-POL",
+          "name": "Hamburguesa de pollo",
+          "description": "Pechuga apanada, queso, lechuga, tomate y salsa de miel mostaza",
+          "price": 19500,
+          "extras": ["EXT-QUE", "EXT-TOC", "EXT-HUE"]
+        }
+      ]
+    },
+    {
+      "name": "Perros calientes",
+      "items": [
+        {
+          "code": "PER-SEN",
+          "name": "Perro sencillo",
+          "description": "Salchicha americana, papita ripio, queso rallado y salsas",
+          "price": 12000,
+          "extras": ["EXT-QUE", "EXT-TOC", "EXT-SAL"]
+        },
+        {
+          "code": "PER-ESP",
+          "name": "Perro especial",
+          "description": "Salchicha ranchera, tocineta, queso gratinado, huevos de codorniz y papita ripio",
+          "price": 17000,
+          "extras": ["EXT-QUE", "EXT-TOC", "EXT-SAL"]
+        }
+      ]
+    },
+    {
+      "name": "Salchipapas",
+      "items": [
+        {
+          "code": "SAL-PER",
+          "name": "Salchipapa personal",
+          "description": "Papas a la francesa, salchicha, queso rallado y salsas",
+          "price": 15000,
+          "extras": ["EXT-QUE", "EXT-TOC", "EXT-SAL", "EXT-HUE"]
+        },
+        {
+          "code": "SAL-COM",
+          "name": "Salchipapa para compartir",
+          "description": "Para 2-3 personas: papas, salchicha, chorizo, pollo desmechado, queso gratinado y huevos de codorniz",
+          "price": 32000,
+          "extras": ["EXT-QUE", "EXT-TOC", "EXT-SAL", "EXT-HUE"]
+        }
+      ]
+    },
+    {
+      "name": "Arepas rellenas",
+      "items": [
+        {
+          "code": "ARE-POL",
+          "name": "Arepa de pollo",
+          "description": "Arepa de maíz rellena de pollo desmechado y queso",
+          "price": 13000,
+          "extras": ["EXT-QUE", "EXT-HUE", "EXT-MAD"]
+        },
+        {
+          "code": "ARE-MIX",
+          "name": "Arepa mixta",
+          "description": "Arepa rellena de carne desmechada, pollo, maduro y queso",
+          "price": 16000,
+          "extras": ["EXT-QUE", "EXT-HUE", "EXT-MAD"]
+        }
+      ]
+    },
+    {
+      "name": "Combos",
+      "items": [
+        {
+          "code": "COM-HAM",
+          "name": "Combo hamburguesa",
+          "description": "Hamburguesa sencilla + papas a la francesa + gaseosa 400 ml",
+          "price": 25000,
+          "extras": ["EXT-QUE", "EXT-TOC", "EXT-PAP"]
+        },
+        {
+          "code": "COM-PER",
+          "name": "Combo perro",
+          "description": "Perro sencillo + papas a la francesa + gaseosa 400 ml",
+          "price": 19000,
+          "extras": ["EXT-QUE", "EXT-TOC", "EXT-PAP"]
+        }
+      ]
+    },
+    {
+      "name": "Bebidas",
+      "items": [
+        {
+          "code": "BEB-GAS",
+          "name": "Gaseosa 400 ml",
+          "description": "Coca-Cola, Postobón manzana, uva o naranja (indicar sabor en notas)",
+          "price": 4000,
+          "extras": []
+        },
+        {
+          "code": "BEB-JAG",
+          "name": "Jugo natural en agua",
+          "description": "Mora, maracuyá, lulo o mango (indicar fruta en notas)",
+          "price": 6000,
+          "extras": []
+        },
+        {
+          "code": "BEB-JLE",
+          "name": "Jugo natural en leche",
+          "description": "Mora, maracuyá, lulo o mango (indicar fruta en notas)",
+          "price": 7500,
+          "extras": []
+        },
+        {
+          "code": "BEB-LIM",
+          "name": "Limonada de coco",
+          "description": "Limonada cremosa de coco",
+          "price": 9000,
+          "isAvailable": false,
+          "extras": []
+        },
+        {
+          "code": "BEB-AGU",
+          "name": "Agua 600 ml",
+          "description": "Agua sin gas",
+          "price": 3000,
+          "extras": []
+        }
+      ]
+    },
+    {
+      "name": "Adiciones",
+      "items": [
+        {
+          "code": "ADI-PAP",
+          "name": "Papas a la francesa",
+          "description": "Porción de papas a la francesa",
+          "price": 6000,
+          "extras": ["EXT-QUE", "EXT-TOC"]
+        },
+        {
+          "code": "ADI-AJI",
+          "name": "Ají casero",
+          "description": "Porción de ají de la casa",
+          "price": 1000,
+          "extras": []
+        }
+      ]
+    }
+  ]
+}
