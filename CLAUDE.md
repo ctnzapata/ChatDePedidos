@@ -50,4 +50,6 @@ npm run dev              # Fastify server: /webhook, /panel, /health
 
 ## Tests
 
-TDD: write the failing test first. Fakes live in `tests/fixtures`: `scriptedLlm` (scripted Claude responses), `FakeMessenger` (can fail per recipient), and `db.ts` (test store seeded from seed/menu.json, `MONDAY_3PM` = open).
+TDD: write the failing test first. Fakes live in `tests/fixtures`: `scriptedLlm` (scripted LLM responses), `FakeMessenger` (can fail per recipient), and `db.ts` (test store seeded from seed/menu.json, `MONDAY_3PM` = open).
+
+RLS is tested in `tests/integration/rls.test.ts` with `tests/fixtures/rls.ts`. `asUser(userId, fn)` runs queries as the real `anon`/`authenticated` role with JWT claims, and `createAuthUser` inserts into `auth.users`. Any new table, policy or role needs cases there. The suite also fails if any public table lacks RLS.
