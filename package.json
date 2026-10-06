@@ -23,11 +23,15 @@
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "admin:dev": "npm --prefix admin run dev",
+    "admin:build": "npm --prefix admin run build",
+    "admin:test": "npm --prefix admin test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
     "@fastify/rate-limit": "^11.2.0",
+    "@fastify/static": "^10.1.5",
     "@google/genai": "^2.27.0",
     "@prisma/client": "^6.19.3",
     "@supabase/supabase-js": "^2.117.2",

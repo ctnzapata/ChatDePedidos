@@ -3,6 +3,7 @@ import Fastify, { type FastifyError } from "fastify";
 import { logger as defaultLogger, type Logger } from "../lib/logger.ts";
 import type { RestaurantRepository } from "../repositories/restaurant-repository.ts";
 import type { PanelService } from "../services/panel-service.ts";
+import { adminAppRoutes, hasAdminBuild } from "./admin-app.ts";
 import { adminRoutes, type AdminRoutesOptions } from "./admin-routes.ts";
 import { panelRoutes } from "./panel-routes.ts";
 import { webhookRoutes, type MessageHandler } from "./webhook-routes.ts";
@@ -19,6 +20,10 @@ export interface ServerDeps {
   readonly restaurants: RestaurantRepository;
   /** API del panel administrativo con Supabase Auth (si se omite, no se registra). */
   readonly admin?: AdminRoutesOptions;
+  /** Valores públicos para el panel (nunca la llave secreta). */
+  readonly publicConfig?: { readonly supabaseUrl: string; readonly supabasePublishableKey: string };
+  /** Carpeta con el build del panel (admin/dist); se sirve en /admin si existe. */
+  readonly adminAppDir?: string;
   readonly logger?: Logger;
 }
 
@@ -68,6 +73,18 @@ export async function buildServer(deps: ServerDeps) {
   });
 
   if (deps.admin) await app.register(adminRoutes, { ...deps.admin, prefix: "/api/admin" });
+
+  const { publicConfig, adminAppDir } = deps;
+  if (publicConfig) {
+    app.get("/api/public-config", async () => ({
+      supabaseUrl: publicConfig.supabaseUrl,
+      supabasePublishableKey: publicConfig.supabasePublishableKey,
+    }));
+    if (adminAppDir && hasAdminBuild(adminAppDir)) {
+      app.get("/admin", async (_request, reply) => reply.redirect("/admin/"));
+      await app.register(adminAppRoutes, { rootDir: adminAppDir, supabaseUrl: publicConfig.supabaseUrl, prefix: "/admin" });
+    }
+  }
 
   return app;
 }

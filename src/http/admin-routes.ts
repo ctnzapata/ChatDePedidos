@@ -164,6 +164,14 @@ export async function adminRoutes(app: FastifyInstance, options: AdminRoutesOpti
     return sendOk(reply, { isAcceptingOrders: body.isAcceptingOrders });
   });
 
+  app.get("/restaurants/:restaurantId/store", async (request, reply) => {
+    const params = parseOr400(restaurantParams, request.params, reply);
+    if (!params || !allow(request, reply, params.restaurantId, "store:pause")) return reply;
+    const store = await restaurants.findById(params.restaurantId);
+    if (!store) return sendError(reply, 404, "Restaurante no encontrado.");
+    return sendOk(reply, { id: store.id, name: store.name, isAcceptingOrders: store.isAcceptingOrders, timezone: store.timezone });
+  });
+
   app.get("/restaurants/:restaurantId/menu", async (request, reply) => {
     const params = parseOr400(restaurantParams, request.params, reply);
     if (!params || !allow(request, reply, params.restaurantId, "menu:availability")) return reply;

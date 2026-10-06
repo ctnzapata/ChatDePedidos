@@ -1,4 +1,6 @@
+import path from "node:path";
 import { OrderAgent } from "./agent/order-agent.ts";
+import { hasAdminBuild } from "./http/admin-app.ts";
 import { SupabaseAuthVerifier } from "./auth/auth-verifier.ts";
 import { SupabaseUserAdmin } from "./auth/user-admin.ts";
 import { StaffRepository } from "./repositories/staff-repository.ts";
@@ -17,6 +19,7 @@ import { PanelService } from "./services/panel-service.ts";
 import { CloudApiMessenger } from "./whatsapp/cloud-api-messenger.ts";
 
 const PLACEHOLDER_PHONE_NUMBER_ID = "REEMPLAZAR_CON_PHONE_NUMBER_ID";
+const ADMIN_APP_DIR = path.resolve("admin/dist");
 
 async function main(): Promise<void> {
   loadDotEnv();
@@ -65,7 +68,10 @@ async function main(): Promise<void> {
       }),
       metrics: new MetricsService(orders, restaurants),
     },
+    publicConfig: { supabaseUrl: config.supabaseUrl, supabasePublishableKey: config.supabasePublishableKey },
+    adminAppDir: ADMIN_APP_DIR,
   });
+  if (!hasAdminBuild(ADMIN_APP_DIR)) logger.warn("El panel no está compilado. Ejecuta: npm run admin:build");
 
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, "Cerrando servidor");

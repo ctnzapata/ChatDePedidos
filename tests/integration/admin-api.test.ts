@@ -250,6 +250,9 @@ describe("operación diaria", () => {
     expect(pause.statusCode).toBe(200);
     expect(soldOut.statusCode).toBe(200);
     expect((await restaurants.findById(restaurantA))?.isAcceptingOrders).toBe(false);
+    const store = await call("staff", "GET", `/restaurants/${restaurantA}/store`);
+    expect(store.json().data).toMatchObject({ name: "La Esquina Rápida", isAcceptingOrders: false });
+    expect((await call("courier", "GET", `/restaurants/${restaurantA}/store`)).statusCode).toBe(403);
   });
 
   it("shows conversations waiting for a human with their messages, and resumes the agent", async () => {

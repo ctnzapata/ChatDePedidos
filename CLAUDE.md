@@ -32,6 +32,12 @@ npm run dev              # Fastify server: /webhook, /panel, /health
   - New routes must declare a permission and get cases in `tests/integration/admin-api.test.ts`.
 - Dispatching a DELIVERY order to `OUT_FOR_DELIVERY` requires an active COURIER (`courierId`).
 - The old Basic-Auth `/panel` stays until the new panel (Phase 4) replaces it.
+- Admin panel frontend in `admin/` (separate package):
+  - Stack: React 19, Vite 8, TypeScript 6, Tailwind 4, shadcn/ui (radix-nova), TanStack Query, React Router 8 and next-themes. Tests use Vitest + Testing Library.
+  - Scripts: `npm run admin:dev` (Vite on :5173, proxies /api to :3000), `admin:build` (writes `admin/dist`, which Fastify serves at `/admin` with a strict CSP) and `admin:test`.
+  - The SPA gets its Supabase URL and publishable key from `GET /api/public-config` and never sees the secret key.
+  - Design tokens live in `admin/src/index.css`: a warm ivory/charcoal palette with a `--brand` amber accent. Per-company branding will override `--brand`. Fonts are Geist (UI) and Instrument Serif (`font-display`, used for titles and figures).
+  - Navigation is filtered by permissions in `admin/src/app/navigation.ts`, but the API still enforces every rule.
 - `src/repositories`: Prisma data access, always scoped by `restaurantId` / `customerId`.
 
 ## Invariants (do not break)

@@ -131,7 +131,18 @@ resto del equipo por correo.
 En Supabase → *Authentication → URL Configuration* agrega `ADMIN_APP_URL` a las **Redirect URLs** para que funcionen
 los enlaces de invitación.
 
-### 7. Panel del restaurante
+### 7. Panel administrativo (nuevo)
+
+```bash
+cd admin && npm install && cd ..   # solo la primera vez
+npm run admin:build                # compila el panel
+npm run dev                        # sirve el panel en http://localhost:3000/admin
+```
+
+Entra con el usuario creado con `admin:create-owner`. Para trabajar en el diseño con recarga en caliente usa
+`npm run dev` y, en otra terminal, `npm run admin:dev` (http://localhost:5173/admin).
+
+### 8. Panel anterior (se retirará)
 
 Abre `http://localhost:3000/panel` (usuario y contraseña de `PANEL_USER` y `PANEL_PASSWORD`). Desde ahí puedes:
 
