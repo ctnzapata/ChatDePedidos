@@ -51,6 +51,7 @@ npm run dev              # Fastify server: /webhook, /panel, /health
 - Security model: the backend connects as the table owner (bypasses RLS). Panel users (`authenticated`) can only SELECT their restaurants' rows. Roles are OWNER/STAFF (back office) and COURIER (only orders where `assigned_courier_id` is theirs). Every new table needs RLS enabled.
 - Integration tests run against local Supabase (`tests/test-database.ts`) and refuse non-local hosts because they delete data. Prisma blocks `migrate reset`/`--force-reset` from AI agents; tests clean up with `deleteMany` instead.
 - Integration tests share one database, so `fileParallelism: false` in the `integration` Vitest project.
+- **Never hardcode keys, not even local Supabase demo keys**: GitHub push protection blocks them. `tests/global-setup.ts` reads them via `npx supabase status -o json` (Docker must be on PATH) or from `TEST_SUPABASE_*` env vars, and tests get them with `testSupabaseKeys()`.
 - `trustProxy: "loopback"` assumes the tunnel (cloudflared/ngrok) runs on the same machine.
 - The default model is `claude-haiku-4-5`, set via `ANTHROPIC_MODEL`. Its prompt-cache minimum is 4096 tokens.
 - Gemini (`GEMINI_MODEL`, default `gemini-3.5-flash-lite`) needs its model parts replayed exactly, including thought signatures. They are stored in `ChatMessage.raw`, so keep it when editing history. Locally generated tool-call ids (`gemini-local-*`) are never sent back.
