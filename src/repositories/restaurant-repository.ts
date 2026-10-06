@@ -8,8 +8,8 @@ import type { Db } from "../db/client.ts";
 
 const paymentMethodsSchema = z.array(z.enum(PAYMENT_METHODS)).min(1);
 
-function parseJsonField<T>(schema: z.ZodType<T>, raw: string, field: string, slug: string): T {
-  const parsed = schema.safeParse(JSON.parse(raw));
+function parseJsonField<T>(schema: z.ZodType<T>, raw: unknown, field: string, slug: string): T {
+  const parsed = schema.safeParse(raw);
   if (!parsed.success) throw new Error(`Restaurante ${slug}: el campo ${field} no es válido`);
   return parsed.data;
 }

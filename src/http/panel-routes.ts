@@ -26,9 +26,10 @@ const SECURITY_HEADERS = {
   "cache-control": "no-store",
 };
 
-const restaurantParams = z.object({ restaurantId: z.string().min(1).max(64) });
-const orderParams = restaurantParams.extend({ orderId: z.string().min(1).max(64) });
-const conversationParams = restaurantParams.extend({ conversationId: z.string().min(1).max(64) });
+// Los ids son uuid en Postgres: un formato inválido se rechaza aquí (400) antes de llegar a la base.
+const restaurantParams = z.object({ restaurantId: z.uuid() });
+const orderParams = restaurantParams.extend({ orderId: z.uuid() });
+const conversationParams = restaurantParams.extend({ conversationId: z.uuid() });
 const ordersQuery = z.object({ includeClosed: z.enum(["0", "1", "true", "false"]).optional() });
 const statusBody = z.object({ status: z.enum(ORDER_STATUSES) });
 const acceptingBody = z.object({ isAcceptingOrders: z.boolean() });

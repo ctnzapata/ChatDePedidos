@@ -1,7 +1,9 @@
 import type { Order, OrderItem, Customer } from "@prisma/client";
 import { z } from "zod";
 import type { OrderSummary } from "../agent/tools.ts";
-import { isRetryableWriteError, type Db } from "../db/client.ts";
+import type { AgentState } from "../agent/agent-state.ts";
+import { isRetryableWriteError, toJson, type Db } from "../db/client.ts";
+import type { ChatMessage } from "../llm/types.ts";
 import { KeyedSerialQueue } from "../lib/keyed-queue.ts";
 import type { Fulfillment, PaymentMethod, Quote } from "../domain/checkout.ts";
 import { canTransition, isActiveStatus, isOrderStatus, nextStatuses, type OrderStatus, ORDER_STATUSES } from "../domain/order-status.ts";
@@ -44,8 +46,8 @@ export interface TransitionError {
 /** Estado de la conversación que se guarda en la misma transacción que el pedido. */
 export interface ConversationSnapshot {
   readonly conversationId: string;
-  readonly state: string;
-  readonly history: string;
+  readonly state: AgentState;
+  readonly history: readonly ChatMessage[];
 }
 
 export interface CreateOrderInput {
@@ -65,13 +67,9 @@ const modifiersSchema = z.array(z.object({ code: z.string(), name: z.string(), p
 
 type OrderWithRelations = Order & { items: OrderItem[]; customer: Customer };
 
-function parseModifierNames(raw: string): string[] {
-  try {
-    const parsed = modifiersSchema.safeParse(JSON.parse(raw));
-    return parsed.success ? parsed.data.map((m) => m.name) : [];
-  } catch {
-    return [];
-  }
+function parseModifierNames(raw: unknown): string[] {
+  const parsed = modifiersSchema.safeParse(raw);
+  return parsed.success ? parsed.data.map((m) => m.name) : [];
 }
 
 function asStatus(value: string): OrderStatus {
@@ -168,7 +166,7 @@ export class OrderRepository {
                   name: line.name,
                   unitPrice: line.unitPrice,
                   quantity: line.quantity,
-                  modifiers: JSON.stringify(line.modifiers),
+                  modifiers: toJson(line.modifiers),
                   notes: line.notes ?? null,
                   lineTotal: line.lineTotal,
                 })),
@@ -179,7 +177,7 @@ export class OrderRepository {
             const snapshot = conversationAfterCreate(number);
             await tx.conversation.update({
               where: { id: snapshot.conversationId },
-              data: { state: snapshot.state, history: snapshot.history },
+              data: { state: toJson(snapshot.state), history: toJson(snapshot.history) },
             });
           }
           return { id: order.id, number: order.number };

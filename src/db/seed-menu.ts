@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { z } from "zod";
 import { PAYMENT_METHODS } from "../domain/checkout.ts";
 import { openingHoursSchema } from "../domain/hours.ts";
-import type { Db } from "./client.ts";
+import { toJson, type Db } from "./client.ts";
 
 const CODE = /^[A-Z]{3}-[A-Z]{3}$/;
 // Reemplazar un menú grande en SQLite puede pasar del timeout por defecto de Prisma (5 s).
@@ -80,8 +80,8 @@ export async function seedRestaurant(db: Db, data: SeedFile, overrides: SeedOver
     ...restaurantFields,
     whatsappPhoneNumberId: overrides.whatsappPhoneNumberId ?? restaurantFields.whatsappPhoneNumberId,
     staffPhone: overrides.staffPhone !== undefined ? overrides.staffPhone : restaurantFields.staffPhone,
-    openingHours: JSON.stringify(openingHours),
-    paymentMethods: JSON.stringify(paymentMethods),
+    openingHours: toJson(openingHours),
+    paymentMethods,
   };
 
   return db.$transaction(async (tx) => {

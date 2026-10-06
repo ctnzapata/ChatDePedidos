@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { EMPTY_CART, addToCart } from "../../src/domain/cart.ts";
 import { buildQuote } from "../../src/domain/checkout.ts";
@@ -253,8 +253,18 @@ describe("panel", () => {
   });
 
   it("returns 404 for unknown restaurants", async () => {
-    const response = await server.inject({ method: "GET", url: "/panel/api/restaurants/nope/orders", headers: PANEL_HEADERS });
+    const response = await server.inject({
+      method: "GET",
+      url: `/panel/api/restaurants/${randomUUID()}/orders`,
+      headers: PANEL_HEADERS,
+    });
 
     expect(response.statusCode).toBe(404);
+  });
+
+  it("rejects malformed ids with 400 before querying the database", async () => {
+    const response = await server.inject({ method: "GET", url: "/panel/api/restaurants/nope/orders", headers: PANEL_HEADERS });
+
+    expect(response.statusCode).toBe(400);
   });
 });

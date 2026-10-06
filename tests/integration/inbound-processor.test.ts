@@ -120,7 +120,7 @@ describe("InboundProcessor", () => {
     await processor.handle(said("Hola"));
 
     const conversation = await conversationOf();
-    expect(JSON.parse(conversation.history)).toHaveLength(2);
+    expect((conversation.history as unknown[])).toHaveLength(2);
     expect(conversation.inputTokens).toBe(100);
     expect(await testPrisma.message.count({ where: { conversationId: conversation.id } })).toBe(2);
   });

@@ -1,7 +1,7 @@
-import { parseAgentState, serializeAgentState, type AgentState } from "../agent/agent-state.ts";
+import { parseAgentState, type AgentState } from "../agent/agent-state.ts";
 import { parseHistory } from "../agent/history.ts";
 import type { ChatMessage, TokenUsage } from "../llm/types.ts";
-import { isUniqueViolation, type Db } from "../db/client.ts";
+import { isUniqueViolation, toJson, type Db } from "../db/client.ts";
 
 export type ConversationMode = "AGENT" | "HUMAN";
 
@@ -87,8 +87,8 @@ export class ConversationRepository {
     await this.db.conversation.update({
       where: { id: conversationId },
       data: {
-        state: serializeAgentState(state),
-        history: JSON.stringify(history),
+        state: toJson(state),
+        history: toJson(history),
         ...(usage
           ? {
               inputTokens: { increment: usage.input },

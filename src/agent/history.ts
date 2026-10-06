@@ -42,10 +42,10 @@ export function trimHistory(messages: readonly ChatMessage[], limit: number): Ch
   return [];
 }
 
-/** Lee el historial guardado. Si está dañado o en un formato anterior, la conversación empieza de cero. */
-export function parseHistory(raw: string): ChatMessage[] {
+/** Lee el historial guardado (jsonb o texto). Si está dañado o en un formato anterior, la conversación empieza de cero. */
+export function parseHistory(raw: unknown): ChatMessage[] {
   try {
-    const parsed = historySchema.safeParse(JSON.parse(raw));
+    const parsed = historySchema.safeParse(typeof raw === "string" ? JSON.parse(raw) : raw);
     return parsed.success ? (parsed.data as ChatMessage[]) : [];
   } catch {
     return [];

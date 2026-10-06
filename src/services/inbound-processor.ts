@@ -1,4 +1,4 @@
-import { serializeAgentState, type AgentState } from "../agent/agent-state.ts";
+import type { AgentState } from "../agent/agent-state.ts";
 import type { AgentTurnInput, AgentTurnResult } from "../agent/order-agent.ts";
 import { buildSystemPrompt, buildTurnContext } from "../agent/system-prompt.ts";
 import type { CustomerOrdersPort } from "../agent/tools.ts";
@@ -259,9 +259,11 @@ export class InboundProcessor {
       quote: quote.value,
       conversationAfterCreate: (orderNumber) => ({
         conversationId: conversation.id,
-        state: serializeAgentState(state),
-        history: JSON.stringify(
-          withScriptedExchange(conversation.history, "[Tocó el botón: Confirmar pedido]", confirmationFor(orderNumber)),
+        state,
+        history: withScriptedExchange(
+          conversation.history,
+          "[Tocó el botón: Confirmar pedido]",
+          confirmationFor(orderNumber),
         ),
       }),
     });

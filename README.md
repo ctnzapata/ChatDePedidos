@@ -4,7 +4,7 @@ Asistente con IA (Claude) que atiende por WhatsApp a los clientes de restaurante
 Muestra el menú, arma el pedido (domicilio o recoger) y pide confirmación con botones. El restaurante gestiona
 los pedidos desde un panel web, y cada cambio de estado se le avisa al cliente por WhatsApp.
 
-**Pensado para un piloto de bajo costo:** usa el número de prueba gratuito de Meta, SQLite, un túnel gratuito y
+**Pensado para un piloto de bajo costo:** usa el número de prueba gratuito de Meta, Supabase (plan gratuito), un túnel gratuito y
 Claude Haiku 4.5. El único gasto es el uso del modelo.
 
 ## Cómo funciona
@@ -21,7 +21,7 @@ Cliente WhatsApp ─► Meta Cloud API ─► POST /webhook (firma verificada)
                     request_order_confirmation · get_order_status · cancel_order · transfer_to_human
                                           │
                                           ▼
-                     SQLite (Prisma) ◄── Panel web /panel (usuario y contraseña)
+                 Supabase Postgres (Prisma) ◄── Panel web /panel
 ```
 
 - **El modelo nunca calcula precios ni crea pedidos.** Los totales salen del menú en la base de datos, y el pedido
@@ -39,7 +39,19 @@ Requisitos: Node.js 20.12 o superior.
 ```bash
 npm install
 cp .env.example .env        # completa los valores (ver abajo)
-npm run db:setup            # crea dev.db y carga el menú de ejemplo (seed/menu.json)
+npm run db:setup            # aplica las migraciones en Supabase y carga el menú de ejemplo (seed/menu.json)
+```
+
+**Base de datos (Supabase):** crea un proyecto gratuito en <https://supabase.com> (región São Paulo). En
+*Project Settings → Database → Connection string* copia la conexión **Transaction pooler** (puerto 6543, agrega
+`?pgbouncer=true`) en `DATABASE_URL` y la **Session pooler** (puerto 5432) en `DIRECT_URL`.
+
+**Pruebas:** las de integración usan Supabase local en Docker y nunca tocan la base de la nube.
+
+```bash
+npm run supabase:start      # requiere Docker Desktop abierto
+npm test                    # unitarias + integración
+npm run test:unit           # solo unitarias (sin Docker)
 ```
 
 ### 1. Probar el agente sin WhatsApp (solo necesitas la clave de Anthropic)

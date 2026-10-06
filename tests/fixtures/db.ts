@@ -1,8 +1,10 @@
 import { PrismaClient } from "@prisma/client";
 import { readSeedFile, seedRestaurant } from "../../src/db/seed-menu.ts";
+import { TEST_DATABASE_URL, assertLocalDatabase } from "../test-database.ts";
 
-// Usa DATABASE_URL de vitest.config.ts (prisma/test.db).
-export const testPrisma = new PrismaClient();
+// Conexión explícita a la base local de pruebas: nunca a la de .env.
+assertLocalDatabase(TEST_DATABASE_URL);
+export const testPrisma = new PrismaClient({ datasourceUrl: TEST_DATABASE_URL });
 
 export const TEST_PHONE_NUMBER_ID = "PNID-TEST";
 export const STAFF_PHONE = "573009998877";

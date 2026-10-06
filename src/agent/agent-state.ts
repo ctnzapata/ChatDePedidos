@@ -41,16 +41,12 @@ const stateSchema = z.object({
   pendingConfirmation: z.object({ total: z.number().int() }).nullable(),
 });
 
-/** Lee el estado guardado; si está vacío o dañado, empieza de cero en lugar de romper la conversación. */
-export function parseAgentState(raw: string): AgentState {
+/** Lee el estado guardado (jsonb o texto); si está vacío o dañado, empieza de cero en lugar de romper la conversación. */
+export function parseAgentState(raw: unknown): AgentState {
   try {
-    const parsed = stateSchema.safeParse(JSON.parse(raw));
+    const parsed = stateSchema.safeParse(typeof raw === "string" ? JSON.parse(raw) : raw);
     return parsed.success ? parsed.data : INITIAL_AGENT_STATE;
   } catch {
     return INITIAL_AGENT_STATE;
   }
-}
-
-export function serializeAgentState(state: AgentState): string {
-  return JSON.stringify(state);
 }

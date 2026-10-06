@@ -1,37 +1,76 @@
-// SQLite para el piloto. Para pasar a PostgreSQL basta con cambiar `provider`
-// y DATABASE_URL: los campos JSON se guardan como texto validado con Zod.
+// Postgres en Supabase. Migraciones versionadas en prisma/migrations (prisma migrate deploy).
+// Las políticas RLS y la publicación de Realtime están en SQL dentro de las migraciones.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // Conexión de la app (pooler de Supabase, puerto 6543).
+  url       = env("DATABASE_URL")
+  // Conexión directa (puerto 5432), usada por las migraciones.
+  directUrl = env("DIRECT_URL")
+}
+
+enum OrderStatus {
+  PENDING
+  ACCEPTED
+  PREPARING
+  READY
+  OUT_FOR_DELIVERY
+  DELIVERED
+  REJECTED
+  CANCELLED
+}
+
+enum Fulfillment {
+  DELIVERY
+  PICKUP
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+}
+
+enum ConversationMode {
+  AGENT
+  HUMAN
+}
+
+enum MessageDirection {
+  IN
+  OUT
+}
+
+enum StaffRole {
+  OWNER
+  STAFF
+  COURIER
 }
 
 model Restaurant {
-  id                    String   @id @default(cuid())
-  slug                  String   @unique
+  id                    String          @id @default(uuid()) @db.Uuid
+  slug                  String          @unique
   name                  String
   // phone_number_id que Meta envía en cada webhook; identifica al restaurante.
-  whatsappPhoneNumberId String   @unique
-  // WhatsApp del personal del restaurante que recibe avisos de pedidos nuevos.
-  staffPhone            String?
+  whatsappPhoneNumberId String          @unique @map("whatsapp_phone_number_id")
+  // WhatsApp del personal que recibe avisos de pedidos nuevos.
+  staffPhone            String?         @map("staff_phone")
   address               String
-  timezone              String   @default("America/Bogota")
-  // JSON: [{ "days": [1,2,3], "open": "11:00", "close": "22:00" }]
-  openingHours          String
-  deliveryFee           Int
-  minOrderAmount        Int
-  prepTimeMinutes       Int
-  deliveryTimeMinutes   Int
-  // JSON: ["CASH", "TRANSFER"]
-  paymentMethods        String
-  transferInfo          String?
-  isAcceptingOrders     Boolean  @default(true)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  timezone              String          @default("America/Bogota")
+  // [{ "days": [1,2,3], "open": "11:00", "close": "22:00" }]
+  openingHours          Json            @map("opening_hours")
+  deliveryFee           Int             @map("delivery_fee")
+  minOrderAmount        Int             @map("min_order_amount")
+  prepTimeMinutes       Int             @map("prep_time_minutes")
+  deliveryTimeMinutes   Int             @map("delivery_time_minutes")
+  paymentMethods        PaymentMethod[] @map("payment_methods")
+  transferInfo          String?         @map("transfer_info")
+  isAcceptingOrders     Boolean         @default(true) @map("is_accepting_orders")
+  createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   categories    MenuCategory[]
   items         MenuItem[]
@@ -39,138 +78,173 @@ model Restaurant {
   customers     Customer[]
   conversations Conversation[]
   orders        Order[]
+  staff         StaffMember[]
+
+  @@map("restaurants")
+}
+
+/// Personal del restaurante. user_id es el id del usuario en Supabase Auth (auth.users).
+model StaffMember {
+  id             String     @id @default(uuid()) @db.Uuid
+  userId         String     @map("user_id") @db.Uuid
+  restaurantId   String     @map("restaurant_id") @db.Uuid
+  role           StaffRole
+  displayName    String     @map("display_name")
+  isActive       Boolean    @default(true) @map("is_active")
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  restaurant     Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  assignedOrders Order[]
+
+  @@unique([userId, restaurantId])
+  @@index([userId])
+  @@map("staff_members")
 }
 
 model MenuCategory {
-  id           String     @id @default(cuid())
-  restaurantId String
+  id           String     @id @default(uuid()) @db.Uuid
+  restaurantId String     @map("restaurant_id") @db.Uuid
   name         String
-  sortOrder    Int
+  sortOrder    Int        @map("sort_order")
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   items        MenuItem[]
 
   @@unique([restaurantId, name])
+  @@map("menu_categories")
 }
 
 model MenuItem {
-  id           String         @id @default(cuid())
-  restaurantId String
-  categoryId   String
+  id           String         @id @default(uuid()) @db.Uuid
+  restaurantId String         @map("restaurant_id") @db.Uuid
+  categoryId   String         @map("category_id") @db.Uuid
   // Código corto y estable que usa el agente (p. ej. "HAM-DOB").
   code         String
   name         String
   description  String
   price        Int
-  isAvailable  Boolean        @default(true)
-  sortOrder    Int
+  isAvailable  Boolean        @default(true) @map("is_available")
+  sortOrder    Int            @map("sort_order")
   restaurant   Restaurant     @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   category     MenuCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  modifiers    MenuModifier[]
+  modifiers    MenuModifier[] @relation("MenuItemModifiers")
 
   @@unique([restaurantId, code])
+  @@map("menu_items")
 }
 
 model MenuModifier {
-  id           String     @id @default(cuid())
-  restaurantId String
+  id           String     @id @default(uuid()) @db.Uuid
+  restaurantId String     @map("restaurant_id") @db.Uuid
   code         String
   name         String
   price        Int
-  isAvailable  Boolean    @default(true)
+  isAvailable  Boolean    @default(true) @map("is_available")
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  items        MenuItem[]
+  items        MenuItem[] @relation("MenuItemModifiers")
 
   @@unique([restaurantId, code])
+  @@map("menu_modifiers")
 }
 
 model Customer {
-  id           String         @id @default(cuid())
-  restaurantId String
-  // wa_id de WhatsApp (número en formato internacional sin "+").
+  id           String        @id @default(uuid()) @db.Uuid
+  restaurantId String        @map("restaurant_id") @db.Uuid
+  // wa_id de WhatsApp (número internacional sin "+").
   phone        String
   name         String?
-  createdAt    DateTime       @default(now())
-  restaurant   Restaurant     @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  restaurant   Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   conversation Conversation?
   orders       Order[]
 
   @@unique([restaurantId, phone])
+  @@map("customers")
 }
 
 model Conversation {
-  id               String     @id @default(cuid())
-  restaurantId     String
-  customerId       String     @unique
-  // "AGENT" (responde la IA) o "HUMAN" (la IA está en pausa para este cliente).
-  mode             String     @default("AGENT")
-  // JSON con carrito, datos de entrega y confirmación pendiente (AgentState).
-  state            String     @default("{}")
-  // JSON con el historial recortado en formato de la API de Claude.
-  history          String     @default("[]")
-  lastInboundAt    DateTime?
-  inputTokens      Int        @default(0)
-  outputTokens     Int        @default(0)
-  cacheReadTokens  Int        @default(0)
-  cacheWriteTokens Int        @default(0)
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
-  restaurant       Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  customer         Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  id               String           @id @default(uuid()) @db.Uuid
+  restaurantId     String           @map("restaurant_id") @db.Uuid
+  customerId       String           @unique @map("customer_id") @db.Uuid
+  mode             ConversationMode @default(AGENT)
+  // AgentState: carrito, datos de entrega y confirmación pendiente.
+  state            Json             @default("{}")
+  // Historial en formato neutral (ChatMessage[]).
+  history          Json             @default("[]")
+  lastInboundAt    DateTime?        @map("last_inbound_at") @db.Timestamptz(3)
+  inputTokens      Int              @default(0) @map("input_tokens")
+  outputTokens     Int              @default(0) @map("output_tokens")
+  cacheReadTokens  Int              @default(0) @map("cache_read_tokens")
+  cacheWriteTokens Int              @default(0) @map("cache_write_tokens")
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  restaurant       Restaurant       @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  customer         Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
   messages         Message[]
+
+  @@index([restaurantId, mode])
+  @@map("conversations")
 }
 
 model Message {
-  id             String       @id @default(cuid())
-  conversationId String
-  // "IN" (del cliente) u "OUT" (enviado por el sistema).
-  direction      String
+  id             String           @id @default(uuid()) @db.Uuid
+  conversationId String           @map("conversation_id") @db.Uuid
+  direction      MessageDirection
   // id del mensaje en WhatsApp; único para descartar reintentos del webhook.
-  waMessageId    String?      @unique
+  waMessageId    String?          @unique @map("wa_message_id")
   type           String
   body           String
-  createdAt      DateTime     @default(now())
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  conversation   Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId, createdAt])
+  @@map("messages")
 }
 
 model Order {
-  id            String      @id @default(cuid())
-  restaurantId  String
-  customerId    String
+  id                String        @id @default(uuid()) @db.Uuid
+  restaurantId      String        @map("restaurant_id") @db.Uuid
+  customerId        String        @map("customer_id") @db.Uuid
   // Consecutivo por restaurante, el que ve el cliente ("Pedido #12").
-  number        Int
-  status        String
-  fulfillment   String
-  address       String?
-  addressNotes  String?
-  customerName  String
-  paymentMethod String
-  cashAmount    Int?
-  notes         String?
-  subtotal      Int
-  deliveryFee   Int
-  total         Int
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  customer      Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  items         OrderItem[]
+  number            Int
+  status            OrderStatus
+  fulfillment       Fulfillment
+  address           String?
+  addressNotes      String?       @map("address_notes")
+  customerName      String        @map("customer_name")
+  paymentMethod     PaymentMethod @map("payment_method")
+  cashAmount        Int?          @map("cash_amount")
+  notes             String?
+  subtotal          Int
+  deliveryFee       Int           @map("delivery_fee")
+  total             Int
+  // Domiciliario asignado al despachar (solo domicilios).
+  assignedCourierId String?       @map("assigned_courier_id") @db.Uuid
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  restaurant        Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  customer          Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  assignedCourier   StaffMember?  @relation(fields: [assignedCourierId], references: [id], onDelete: SetNull)
+  items             OrderItem[]
 
   @@unique([restaurantId, number])
   @@index([restaurantId, status])
+  @@index([restaurantId, createdAt])
+  @@index([assignedCourierId])
+  @@map("orders")
 }
 
 model OrderItem {
-  id        String  @id @default(cuid())
-  orderId   String
-  itemCode  String
+  id        String  @id @default(uuid()) @db.Uuid
+  orderId   String  @map("order_id") @db.Uuid
+  itemCode  String  @map("item_code")
   name      String
-  unitPrice Int
+  unitPrice Int     @map("unit_price")
   quantity  Int
-  // JSON: [{ "code": "EXT-QUE", "name": "Queso extra", "price": 3000 }]
-  modifiers String
+  // [{ "code": "EXT-QUE", "name": "Queso extra", "price": 3000 }]
+  modifiers Json
   notes     String?
-  lineTotal Int
+  lineTotal Int     @map("line_total")
   order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_items")
 }

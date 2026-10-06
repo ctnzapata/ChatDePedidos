@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { EMPTY_CART, addToCart } from "../../src/domain/cart.ts";
 import { buildQuote } from "../../src/domain/checkout.ts";
@@ -89,7 +90,7 @@ describe("PanelService", () => {
     const created = await createOrder();
     const { panel } = setup();
 
-    const result = await panel.updateOrderStatus("otro-restaurante", created.id, "ACCEPTED");
+    const result = await panel.updateOrderStatus(randomUUID(), created.id, "ACCEPTED");
 
     expect(result.ok).toBe(false);
   });

@@ -6,10 +6,13 @@ Talk to the user in Spanish. Code identifiers are in English. Customer-facing te
 ## Commands
 
 ```bash
-npm test                 # vitest: unit + integration (Claude is faked, costs no tokens)
+npm run supabase:start   # local Supabase in Docker (needed by integration tests)
+npm test                 # vitest projects: unit (no DB) + integration (local Supabase). LLM is faked.
+npm run test:unit        # no Docker needed
 npm run test:coverage    # thresholds: 80% lines/functions/statements, 75% branches
 npm run typecheck        # tsc --noEmit (TypeScript 7)
-npm run db:setup         # prisma db push + seed (seed/menu.json) into dev.db
+npm run db:setup         # prisma migrate deploy + seed (seed/menu.json) into DATABASE_URL (Supabase)
+npm run db:new-migration # prints SQL diff: save it as prisma/migrations/<timestamp>_<name>/migration.sql
 npm run chat -- --siempre-abierto   # terminal simulator against the REAL Claude API (spends tokens)
 npm run dev              # Fastify server: /webhook, /panel, /health
 ```
@@ -35,8 +38,11 @@ npm run dev              # Fastify server: /webhook, /panel, /health
 ## Gotchas
 
 - Prisma is pinned to **6.19.x** on purpose: npm `latest` points to an 8.x RC with a different API.
-- Prisma blocks `db push --force-reset` from AI agents. The test setup deletes `prisma/test.db` instead (SQLite relative paths resolve from `prisma/`).
-- Integration tests share one SQLite file, so `fileParallelism: false`.
+- The database is **Supabase Postgres**. Tables are snake_case (`@@map`). JSON columns are `jsonb`: write them with `toJson()` from `src/db/client.ts`, **never** `JSON.stringify` (that stores a JSON string).
+- Migrations are SQL files in `prisma/migrations`, applied with `prisma migrate deploy`. Generate new ones with `npm run db:new-migration`; `migrate dev` needs a shadow DB. RLS policies, the `auth.users` FK and the Realtime publication live in `20261006000100_rls_realtime` and need Supabase (local or cloud).
+- Security model: the backend connects as the table owner (bypasses RLS). Panel users (`authenticated`) can only SELECT their restaurants' rows. Roles are OWNER/STAFF (back office) and COURIER (only orders where `assigned_courier_id` is theirs). Every new table needs RLS enabled.
+- Integration tests run against local Supabase (`tests/test-database.ts`) and refuse non-local hosts because they delete data. Prisma blocks `migrate reset`/`--force-reset` from AI agents; tests clean up with `deleteMany` instead.
+- Integration tests share one database, so `fileParallelism: false` in the `integration` Vitest project.
 - `trustProxy: "loopback"` assumes the tunnel (cloudflared/ngrok) runs on the same machine.
 - The default model is `claude-haiku-4-5`, set via `ANTHROPIC_MODEL`. Its prompt-cache minimum is 4096 tokens.
 - Gemini (`GEMINI_MODEL`, default `gemini-3.5-flash-lite`) needs its model parts replayed exactly, including thought signatures. They are stored in `ChatMessage.raw`, so keep it when editing history. Locally generated tool-call ids (`gemini-local-*`) are never sent back.

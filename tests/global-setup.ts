@@ -1,14 +1,21 @@
 import { execSync } from "node:child_process";
-import { rmSync } from "node:fs";
+import { TEST_DATABASE_URL, assertLocalDatabase } from "./test-database.ts";
 
-// SQLite resuelve "file:./test.db" relativo a prisma/schema.prisma.
-const TEST_DB_FILES = ["prisma/test.db", "prisma/test.db-journal"];
+const SETUP_HINT =
+  "No se pudo preparar la base de pruebas. ¿Está corriendo Supabase local?\n" +
+  "  1. Abre Docker Desktop\n" +
+  "  2. Ejecuta: npm run supabase:start";
 
-// Crea una base SQLite de pruebas nueva antes de ejecutar la suite.
+// Aplica las migraciones a la base de pruebas (Supabase local). Cada prueba limpia sus datos.
 export default function setup(): void {
-  for (const file of TEST_DB_FILES) rmSync(file, { force: true });
-  execSync("npx prisma db push --skip-generate", {
-    env: { ...process.env, DATABASE_URL: "file:./test.db" },
-    stdio: "ignore",
-  });
+  assertLocalDatabase(TEST_DATABASE_URL);
+  try {
+    execSync("npx prisma migrate deploy", {
+      env: { ...process.env, DATABASE_URL: TEST_DATABASE_URL, DIRECT_URL: TEST_DATABASE_URL },
+      stdio: "pipe",
+    });
+  } catch (error: unknown) {
+    const output = (error as { stderr?: Buffer }).stderr?.toString() ?? String(error);
+    throw new Error(`${SETUP_HINT}\n\n${output}`);
+  }
 }

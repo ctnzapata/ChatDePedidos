@@ -1,6 +1,14 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, type Prisma } from "@prisma/client";
 
 export type Db = PrismaClient;
+
+/**
+ * Convierte un valor del dominio a JSON plano para columnas jsonb (descarta `undefined`).
+ * Nunca pasar JSON.stringify(...) a una columna jsonb: se guardaría un string, no un objeto.
+ */
+export function toJson(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
 
 export function createDb(): Db {
   return new PrismaClient();
