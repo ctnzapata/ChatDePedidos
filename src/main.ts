@@ -83,7 +83,9 @@ async function main(): Promise<void> {
   process.once("SIGTERM", () => void shutdown("SIGTERM"));
 
   await server.listen({ port: config.port, host: "0.0.0.0" });
-  logger.info(`Panel: http://localhost:${config.port}/panel · Webhook: /webhook · Modelo: ${provider.name}/${provider.model}`);
+  logger.info(
+    `Panel: http://localhost:${config.port}/admin · Panel anterior: /panel · Webhook: /webhook · Modelo: ${provider.name}/${provider.model}`,
+  );
 }
 
 main().catch((error: unknown) => {
