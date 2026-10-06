@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AuthLayout } from "./login-page";
+import { AUTH_SUBMIT_CLASS, AuthLayout } from "./login-page";
 
 const MIN_PASSWORD_LENGTH = 10;
 
@@ -37,7 +37,7 @@ export function ForgotPasswordPage() {
             <Label htmlFor="reset-email">Correo</Label>
             <Input id="reset-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" required />
           </div>
-          <Button type="submit" className="h-11 w-full" disabled={isSubmitting}>
+          <Button type="submit" className={AUTH_SUBMIT_CLASS} disabled={isSubmitting}>
             {isSubmitting && <Loader2Icon className="size-4 animate-spin" aria-hidden />}
             Enviar enlace
           </Button>
@@ -89,7 +89,7 @@ export function SetPasswordPage() {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-        <Button type="submit" className="h-11 w-full" disabled={isSubmitting}>
+        <Button type="submit" className={AUTH_SUBMIT_CLASS} disabled={isSubmitting}>
           {isSubmitting && <Loader2Icon className="size-4 animate-spin" aria-hidden />}
           Guardar y entrar
         </Button>

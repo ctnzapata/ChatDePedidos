@@ -36,8 +36,17 @@ npm run dev              # Fastify server: /webhook, /panel, /health
   - Stack: React 19, Vite 8, TypeScript 6, Tailwind 4, shadcn/ui (radix-nova), TanStack Query, React Router 8 and next-themes. Tests use Vitest + Testing Library.
   - Scripts: `npm run admin:dev` (Vite on :5173, proxies /api to :3000), `admin:build` (writes `admin/dist`, which Fastify serves at `/admin` with a strict CSP) and `admin:test`.
   - The SPA gets its Supabase URL and publishable key from `GET /api/public-config` and never sees the secret key.
-  - Design tokens live in `admin/src/index.css`: a warm ivory/charcoal palette with a `--brand` amber accent. Per-company branding will override `--brand`. Fonts are Geist (UI) and Instrument Serif (`font-display`, used for titles and figures).
-  - Navigation is filtered by permissions in `admin/src/app/navigation.ts`, but the API still enforces every rule.
+  - Visual direction "Comanda" (kitchen ticket rail). Tokens live in `admin/src/index.css`:
+    - Charcoal sidebar in both themes, bone background, and a `--brand` chili accent used only for actions. Per-company branding overrides `--brand`.
+    - `--status-*` colors per order state: new, preparing, route, ready, done. Reuse them on the board and badges.
+    - `--paper` for tickets.
+    - Fonts: Geist (UI), Bricolage Grotesque condensed (`font-display`) and Geist Mono (`font-num` for order numbers, times and prices). Utility classes: `label-mono`, `ticket-edge`.
+  - Layout uses the shadcn `Sidebar` (`components/ui/sidebar.tsx`, vendored and edited):
+    - Its cookie was removed. `useSidebarPreference` persists collapsed/expanded state in localStorage.
+    - Its strings are in Spanish.
+    - It renders `data-active` only when the item is active, because Tailwind 4 `data-active:` matches the attribute's mere presence.
+  - Shell components live in `components/layout/`: `app-sidebar`, `top-bar` (Bogotá clock and store status) and `user-menu`. Unfinished sections render a `SectionPreview`.
+  - Navigation is filtered by permissions and grouped (`navigationGroupsFor`) in `admin/src/app/navigation.ts`, but the API still enforces every rule.
 - `src/repositories`: Prisma data access, always scoped by `restaurantId` / `customerId`.
 
 ## Invariants (do not break)

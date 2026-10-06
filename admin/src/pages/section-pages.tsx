@@ -1,6 +1,7 @@
 import { useRestaurant } from "@/app/restaurant-context";
 import { useAuth } from "@/auth/auth-provider";
-import { ComingSoon, PageHeader } from "@/components/layout/page-header";
+import { PageHeader } from "@/components/layout/page-header";
+import { SectionPreview } from "@/components/layout/section-preview";
 import { Button } from "@/components/ui/button";
 
 // Pantallas base de cada sección. Se completan en las Fases 5 (pedidos, resumen, entregas) y 6 (menú, atención, equipo, ajustes).
@@ -10,7 +11,9 @@ export function DashboardPage() {
   return (
     <>
       <PageHeader eyebrow="Resumen del día" title={`Hola, ${membership.displayName.split(" ")[0]}`} description="Así va tu restaurante hoy." />
-      <ComingSoon title="Tus cifras del día">Ventas, pedidos, ticket promedio y productos estrella aparecerán aquí en tiempo real.</ComingSoon>
+      <SectionPreview kind="stats" title="Tus cifras del día">
+        Ventas, pedidos, ticket promedio y productos estrella, en tiempo real.
+      </SectionPreview>
     </>
   );
 }
@@ -19,7 +22,9 @@ export function OrdersPage() {
   return (
     <>
       <PageHeader eyebrow="Operación" title="Pedidos" description="Todo lo que entra por WhatsApp, en un solo tablero." />
-      <ComingSoon title="Tablero en tiempo real">Los pedidos nuevos aparecerán al instante con alerta sonora, listos para aceptar, preparar y despachar.</ComingSoon>
+      <SectionPreview kind="board" title="Tablero en tiempo real">
+        Los pedidos nuevos aparecerán al instante con alerta sonora, listos para aceptar, preparar y despachar.
+      </SectionPreview>
     </>
   );
 }
@@ -28,7 +33,9 @@ export function DeliveriesPage() {
   return (
     <>
       <PageHeader eyebrow="Domicilios" title="Mis entregas" />
-      <ComingSoon title="Tus domicilios asignados">Verás la dirección, el valor a cobrar y el cambio, con un botón para marcar cada entrega.</ComingSoon>
+      <SectionPreview kind="list" title="Tus domicilios asignados">
+        Dirección, valor a cobrar y cambio, con un botón para marcar cada entrega.
+      </SectionPreview>
     </>
   );
 }
@@ -37,7 +44,9 @@ export function MenuPage() {
   return (
     <>
       <PageHeader eyebrow="Catálogo" title="Menú" />
-      <ComingSoon title="Tu menú, editable">Productos, precios, adiciones y disponibilidad desde aquí, sin tocar archivos.</ComingSoon>
+      <SectionPreview kind="list" title="Tu menú, editable">
+        Productos, precios, adiciones y disponibilidad desde aquí, sin tocar archivos.
+      </SectionPreview>
     </>
   );
 }
@@ -46,7 +55,9 @@ export function AttentionPage() {
   return (
     <>
       <PageHeader eyebrow="Clientes" title="Atención humana" />
-      <ComingSoon title="Clientes que pidieron una persona">Verás la conversación completa y podrás reactivar el asistente cuando terminen.</ComingSoon>
+      <SectionPreview kind="list" title="Clientes que pidieron una persona">
+        Verás la conversación completa y podrás reactivar el asistente cuando terminen.
+      </SectionPreview>
     </>
   );
 }
@@ -55,7 +66,9 @@ export function TeamPage() {
   return (
     <>
       <PageHeader eyebrow="Personas" title="Equipo" />
-      <ComingSoon title="Tu equipo">Invita personal y domiciliarios por correo y asigna sus roles.</ComingSoon>
+      <SectionPreview kind="list" title="Tu equipo">
+        Invita personal y domiciliarios por correo y asigna sus roles.
+      </SectionPreview>
     </>
   );
 }
@@ -64,7 +77,9 @@ export function SettingsPage() {
   return (
     <>
       <PageHeader eyebrow="Restaurante" title="Ajustes" />
-      <ComingSoon title="Ajustes del local">Horario, costo de domicilio, pedido mínimo y medios de pago.</ComingSoon>
+      <SectionPreview kind="list" title="Ajustes del local">
+        Horario, costo de domicilio, pedido mínimo y medios de pago.
+      </SectionPreview>
     </>
   );
 }
@@ -75,8 +90,9 @@ export function NoAccessPage() {
   return (
     <div className="flex min-h-svh items-center justify-center px-6">
       <div className="max-w-md text-center">
-        <h1 className="font-display text-4xl">Aún no tienes acceso</h1>
-        <p className="mt-3 text-muted-foreground">Pídele al dueño del restaurante que te invite desde la sección Equipo.</p>
+        <p className="label-mono text-brand">Sin acceso</p>
+        <h1 className="mt-3 font-display text-5xl leading-[0.92]">Aún no tienes un restaurante asignado</h1>
+        <p className="mt-4 text-muted-foreground">Pídele al dueño del restaurante que te invite desde la sección Equipo.</p>
         <Button variant="outline" className="mt-6" onClick={() => void signOut()}>
           Cerrar sesión
         </Button>
