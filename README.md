@@ -134,7 +134,7 @@ los enlaces de invitación.
 ### 7. Panel administrativo (nuevo)
 
 ```bash
-cd admin && npm install && cd ..   # solo la primera vez
+npm --prefix admin install        # solo la primera vez
 npm run admin:build                # compila el panel
 npm run dev                        # sirve el panel en http://localhost:3000/admin
 ```
