@@ -27,6 +27,11 @@ const serverSchema = baseSchema.extend({
   WHATSAPP_API_VERSION: optional(z.string().regex(/^v\d+\.\d+$/, "formato vNN.N").default("v23.0")),
   PANEL_USER: z.string().min(1, "es obligatorio"),
   PANEL_PASSWORD: z.string().min(10, "debe tener al menos 10 caracteres"),
+  SUPABASE_URL: z.url("debe ser la Project URL de Supabase"),
+  SUPABASE_PUBLISHABLE_KEY: z.string().min(1, "es obligatorio"),
+  SUPABASE_SECRET_KEY: z.string().min(1, "es obligatorio"),
+  // Página del panel a la que llegan los enlaces de invitación.
+  ADMIN_APP_URL: optional(z.url().default("http://localhost:3000/admin")),
 });
 
 export interface BaseConfig {
@@ -49,6 +54,10 @@ export interface ServerConfig extends BaseConfig {
   readonly whatsappApiVersion: string;
   readonly panelUser: string;
   readonly panelPassword: string;
+  readonly supabaseUrl: string;
+  readonly supabasePublishableKey: string;
+  readonly supabaseSecretKey: string;
+  readonly adminAppUrl: string;
 }
 
 function parseOrThrow<T extends z.ZodType>(schema: T, env: Env): z.infer<T> {
@@ -90,6 +99,10 @@ export function parseServerConfig(env: Env): ServerConfig {
     whatsappApiVersion: parsed.WHATSAPP_API_VERSION,
     panelUser: parsed.PANEL_USER,
     panelPassword: parsed.PANEL_PASSWORD,
+    supabaseUrl: parsed.SUPABASE_URL,
+    supabasePublishableKey: parsed.SUPABASE_PUBLISHABLE_KEY,
+    supabaseSecretKey: parsed.SUPABASE_SECRET_KEY,
+    adminAppUrl: parsed.ADMIN_APP_URL,
   };
 }
 

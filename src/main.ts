@@ -1,4 +1,9 @@
 import { OrderAgent } from "./agent/order-agent.ts";
+import { SupabaseAuthVerifier } from "./auth/auth-verifier.ts";
+import { SupabaseUserAdmin } from "./auth/user-admin.ts";
+import { StaffRepository } from "./repositories/staff-repository.ts";
+import { MetricsService } from "./services/metrics-service.ts";
+import { TeamService } from "./services/team-service.ts";
 import { createLlmProvider } from "./llm/create-provider.ts";
 import { loadDotEnv, parseServerConfig } from "./config/env.ts";
 import { createDb } from "./db/client.ts";
@@ -42,7 +47,25 @@ async function main(): Promise<void> {
 
   const processor = new InboundProcessor({ restaurants, conversations, orders, messenger, agent });
   const panel = new PanelService({ restaurants, conversations, orders, messenger });
-  const server = await buildServer({ config, processor, panel, restaurants });
+  const staff = new StaffRepository(db);
+  const server = await buildServer({
+    config,
+    processor,
+    panel,
+    restaurants,
+    admin: {
+      verifier: SupabaseAuthVerifier.create(config.supabaseUrl, config.supabasePublishableKey),
+      staff,
+      panel,
+      restaurants,
+      team: new TeamService({
+        staff,
+        userAdmin: SupabaseUserAdmin.create(config.supabaseUrl, config.supabaseSecretKey, db),
+        inviteRedirectUrl: config.adminAppUrl,
+      }),
+      metrics: new MetricsService(orders, restaurants),
+    },
+  });
 
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, "Cerrando servidor");

@@ -13,6 +13,7 @@ npm run test:coverage    # thresholds: 80% lines/functions/statements, 75% branc
 npm run typecheck        # tsc --noEmit (TypeScript 7)
 npm run db:setup         # prisma migrate deploy + seed (seed/menu.json) into DATABASE_URL (Supabase)
 npm run db:new-migration # prints SQL diff: save it as prisma/migrations/<timestamp>_<name>/migration.sql
+npm run admin:create-owner -- --email x@y.com --nombre "X"   # bootstrap the first OWNER (prints a temp password once)
 npm run chat -- --siempre-abierto   # terminal simulator against the REAL Claude API (spends tokens)
 npm run dev              # Fastify server: /webhook, /panel, /health
 ```
@@ -24,6 +25,13 @@ npm run dev              # Fastify server: /webhook, /panel, /health
 - `src/llm`: the neutral chat format (`ChatMessage`/`ChatPart`), plus `AnthropicProvider` and `GeminiProvider`. Pick one with `LLM_PROVIDER`. Never import a vendor SDK outside `src/llm`.
 - `src/services/inbound-processor.ts`: per-message orchestration. Handles dedupe by `waMessageId`, the per-customer rate limit, HUMAN mode, the Confirm/Modify buttons (no LLM) and agent turns.
 - `src/services/panel-service.ts`: restaurant panel actions. `src/http`: Fastify routes and the panel page.
+- Admin API `src/http/admin-routes.ts` (`/api/admin/*`):
+  - Uses a Supabase Auth Bearer token, verified with `getClaims` in `src/auth/auth-verifier.ts`. Memberships come from `staff_members`.
+  - Every route calls `allow(…, permission)`, backed by `src/auth/permissions.ts`. OWNER has everything. STAFF does day-to-day work. COURIER only has `deliveries:own`.
+  - A non-member gets 404 and a member without the permission gets 403.
+  - New routes must declare a permission and get cases in `tests/integration/admin-api.test.ts`.
+- Dispatching a DELIVERY order to `OUT_FOR_DELIVERY` requires an active COURIER (`courierId`).
+- The old Basic-Auth `/panel` stays until the new panel (Phase 4) replaces it.
 - `src/repositories`: Prisma data access, always scoped by `restaurantId` / `customerId`.
 
 ## Invariants (do not break)

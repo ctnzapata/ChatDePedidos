@@ -6,6 +6,7 @@ import type { RestaurantRepository } from "../repositories/restaurant-repository
 import type { PanelService } from "../services/panel-service.ts";
 import { isAuthorized, type Credentials } from "./basic-auth.ts";
 import { PANEL_HTML, PANEL_JS } from "./panel-page.ts";
+import { TRANSITION_HTTP_STATUS, parseOr400, sendError, sendOk } from "./responses.ts";
 
 export interface PanelRoutesOptions {
   readonly credentials: Credentials;
@@ -35,22 +36,6 @@ const statusBody = z.object({ status: z.enum(ORDER_STATUSES) });
 const acceptingBody = z.object({ isAcceptingOrders: z.boolean() });
 const availabilityBody = z.object({ code: z.string().min(1).max(20), isAvailable: z.boolean() });
 
-function sendOk(reply: FastifyReply, data: unknown): FastifyReply {
-  return reply.send({ success: true, data, error: null });
-}
-
-function sendError(reply: FastifyReply, status: number, error: string): FastifyReply {
-  return reply.code(status).send({ success: false, data: null, error });
-}
-
-function parseOr400<T>(schema: z.ZodType<T>, value: unknown, reply: FastifyReply): T | null {
-  const parsed = schema.safeParse(value);
-  if (parsed.success) return parsed.data;
-  sendError(reply, 400, parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "));
-  return null;
-}
-
-const TRANSITION_STATUS = { NOT_FOUND: 404, INVALID_TRANSITION: 409, CONFLICT: 409 } as const;
 
 export async function panelRoutes(app: FastifyInstance, options: PanelRoutesOptions): Promise<void> {
   const { panel, restaurants, credentials } = options;
@@ -102,7 +87,7 @@ export async function panelRoutes(app: FastifyInstance, options: PanelRoutesOpti
     const body = params && parseOr400(statusBody, request.body, reply);
     if (!params || !body) return reply;
     const result = await panel.updateOrderStatus(params.restaurantId, params.orderId, body.status);
-    if (!result.ok) return sendError(reply, TRANSITION_STATUS[result.error.code], result.error.message);
+    if (!result.ok) return sendError(reply, TRANSITION_HTTP_STATUS[result.error.code], result.error.message);
     return sendOk(reply, result.value);
   });
 

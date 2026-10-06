@@ -36,11 +36,27 @@ export interface PanelOrder {
   readonly createdAt: Date;
   readonly items: readonly PanelOrderItem[];
   readonly nextStatuses: readonly OrderStatus[];
+  /** Domiciliario asignado al despachar (solo domicilios). */
+  readonly assignedCourier: { readonly staffId: string; readonly displayName: string } | null;
 }
 
 export interface TransitionError {
-  readonly code: "NOT_FOUND" | "INVALID_TRANSITION" | "CONFLICT";
+  readonly code: "NOT_FOUND" | "INVALID_TRANSITION" | "CONFLICT" | "COURIER_REQUIRED" | "INVALID_COURIER";
   readonly message: string;
+}
+
+export interface TransitionOptions {
+  /** Domiciliario a asignar; obligatorio al pasar a OUT_FOR_DELIVERY. */
+  readonly courierStaffId?: string;
+  /** Si se da, el pedido debe estar asignado a este domiciliario (acciones del propio domiciliario). */
+  readonly actingCourierStaffId?: string;
+}
+
+export interface OrderForMetricsRow {
+  readonly status: OrderStatus;
+  readonly total: number;
+  readonly createdAt: Date;
+  readonly items: readonly { readonly name: string; readonly quantity: number }[];
 }
 
 /** Estado de la conversación que se guarda en la misma transacción que el pedido. */
@@ -65,7 +81,17 @@ const ACTIVE_STATUSES = ORDER_STATUSES.filter(isActiveStatus);
 
 const modifiersSchema = z.array(z.object({ code: z.string(), name: z.string(), price: z.number() }));
 
-type OrderWithRelations = Order & { items: OrderItem[]; customer: Customer };
+const PANEL_INCLUDE = {
+  items: true,
+  customer: true,
+  assignedCourier: { select: { id: true, displayName: true } },
+} as const;
+
+type OrderWithRelations = Order & {
+  items: OrderItem[];
+  customer: Customer;
+  assignedCourier: { id: string; displayName: string } | null;
+};
 
 function parseModifierNames(raw: unknown): string[] {
   const parsed = modifiersSchema.safeParse(raw);
@@ -108,6 +134,9 @@ function toPanelOrder(row: OrderWithRelations): PanelOrder {
       lineTotal: item.lineTotal,
     })),
     nextStatuses: nextStatuses(status, fulfillment),
+    assignedCourier: row.assignedCourier
+      ? { staffId: row.assignedCourier.id, displayName: row.assignedCourier.displayName }
+      : null,
   };
 }
 
@@ -221,24 +250,67 @@ export class OrderRepository {
       where: { restaurantId, ...(includeClosed ? {} : { status: { in: [...ACTIVE_STATUSES] } }) },
       orderBy: { createdAt: "desc" },
       take: PANEL_ORDERS_LIMIT,
-      include: { items: true, customer: true },
+      include: PANEL_INCLUDE,
     });
     return rows.map(toPanelOrder);
   }
 
-  async transition(restaurantId: string, orderId: string, to: OrderStatus): Promise<Result<PanelOrder, TransitionError>> {
+  /** Entregas en curso asignadas a un domiciliario. */
+  async listForCourier(restaurantId: string, courierStaffId: string): Promise<PanelOrder[]> {
+    const rows = await this.db.order.findMany({
+      where: { restaurantId, assignedCourierId: courierStaffId, status: "OUT_FOR_DELIVERY" },
+      orderBy: { updatedAt: "asc" },
+      include: PANEL_INCLUDE,
+    });
+    return rows.map(toPanelOrder);
+  }
+
+  async listForMetrics(restaurantId: string, from: Date, to: Date): Promise<OrderForMetricsRow[]> {
+    return this.db.order.findMany({
+      where: { restaurantId, createdAt: { gte: from, lt: to } },
+      select: { status: true, total: true, createdAt: true, items: { select: { name: true, quantity: true } } },
+    });
+  }
+
+  async transition(
+    restaurantId: string,
+    orderId: string,
+    to: OrderStatus,
+    options: TransitionOptions = {},
+  ): Promise<Result<PanelOrder, TransitionError>> {
     const order = await this.db.order.findFirst({ where: { id: orderId, restaurantId } });
-    if (!order) return err({ code: "NOT_FOUND", message: "Pedido no encontrado." });
+    // A un domiciliario no se le revela si existe un pedido que no es suyo.
+    if (!order || (options.actingCourierStaffId && order.assignedCourierId !== options.actingCourierStaffId)) {
+      return err({ code: "NOT_FOUND", message: "Pedido no encontrado." });
+    }
     const from = asStatus(order.status);
     if (!canTransition(from, to, asFulfillment(order.fulfillment))) {
       return err({ code: "INVALID_TRANSITION", message: `No se puede pasar de ${from} a ${to}.` });
     }
+    const courier = to === "OUT_FOR_DELIVERY" ? await this.validateCourier(restaurantId, options.courierStaffId) : ok(null);
+    if (!courier.ok) return courier;
+
     // updateMany con el estado anterior evita pisar un cambio hecho al mismo tiempo desde otra pestaña.
-    const updated = await this.db.order.updateMany({ where: { id: orderId, status: from }, data: { status: to } });
+    const updated = await this.db.order.updateMany({
+      where: { id: orderId, status: from },
+      data: { status: to, ...(courier.value ? { assignedCourierId: courier.value } : {}) },
+    });
     if (updated.count === 0) {
       return err({ code: "CONFLICT", message: "El pedido cambió mientras tanto; recarga el panel." });
     }
-    const row = await this.db.order.findUniqueOrThrow({ where: { id: orderId }, include: { items: true, customer: true } });
+    const row = await this.db.order.findUniqueOrThrow({ where: { id: orderId }, include: PANEL_INCLUDE });
     return ok(toPanelOrder(row));
+  }
+
+  private async validateCourier(restaurantId: string, courierStaffId: string | undefined): Promise<Result<string, TransitionError>> {
+    if (!courierStaffId) {
+      return err({ code: "COURIER_REQUIRED", message: "Elige el domiciliario que llevará el pedido." });
+    }
+    const isActiveCourier = await this.db.staffMember.count({
+      where: { id: courierStaffId, restaurantId, role: "COURIER", isActive: true },
+    });
+    return isActiveCourier > 0
+      ? ok(courierStaffId)
+      : err({ code: "INVALID_COURIER", message: "La persona elegida no es un domiciliario activo de este restaurante." });
   }
 }

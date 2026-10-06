@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { describeOpeningHours, formatLocalTime, isOpenAt, type OpeningWindow } from "../../src/domain/hours.ts";
+import {
+  describeOpeningHours,
+  formatLocalTime,
+  isOpenAt,
+  localDayRange,
+  type OpeningWindow,
+} from "../../src/domain/hours.ts";
 
 const TZ = "America/Bogota"; // UTC-5, sin horario de verano
 
@@ -34,6 +40,16 @@ describe("isOpenAt", () => {
     expect(isOpenAt(lateNight, friday2330, TZ)).toBe(true);
     expect(isOpenAt(lateNight, saturday0130, TZ)).toBe(true);
     expect(isOpenAt(lateNight, saturday0300, TZ)).toBe(false);
+  });
+});
+
+describe("localDayRange", () => {
+  it("returns the local calendar day as UTC instants", () => {
+    const { start, end } = localDayRange(new Date("2026-10-06T02:00:00Z"), TZ);
+
+    // 2:00 UTC del 6 de octubre son las 21:00 del 5 de octubre en Bogotá.
+    expect(start.toISOString()).toBe("2026-10-05T05:00:00.000Z");
+    expect(end.toISOString()).toBe("2026-10-06T05:00:00.000Z");
   });
 });
 

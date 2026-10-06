@@ -8,6 +8,9 @@ const serverEnv = {
   WHATSAPP_VERIFY_TOKEN: "verify-token-123",
   PANEL_USER: "admin",
   PANEL_PASSWORD: "una-clave-larga",
+  SUPABASE_URL: "https://proyecto.supabase.co",
+  SUPABASE_PUBLISHABLE_KEY: "sb_publishable_x",
+  SUPABASE_SECRET_KEY: "sb_secret_x",
 };
 
 describe("parseBaseConfig", () => {
@@ -60,6 +63,12 @@ describe("parseServerConfig", () => {
 
   it("requires a panel password of at least 10 characters", () => {
     expect(() => parseServerConfig({ ...serverEnv, PANEL_PASSWORD: "corta" })).toThrow(/PANEL_PASSWORD/);
+  });
+
+  it("requires the Supabase keys and defaults the admin app URL", () => {
+    expect(parseServerConfig(serverEnv).adminAppUrl).toBe("http://localhost:3000/admin");
+    expect(() => parseServerConfig({ ...serverEnv, SUPABASE_SECRET_KEY: "" })).toThrow(/SUPABASE_SECRET_KEY/);
+    expect(() => parseServerConfig({ ...serverEnv, SUPABASE_URL: "no-es-url" })).toThrow(/SUPABASE_URL/);
   });
 
   it("requires the WhatsApp secrets", () => {

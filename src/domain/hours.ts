@@ -50,6 +50,35 @@ function isInsideWindow(window: OpeningWindow, now: LocalTime): boolean {
   );
 }
 
+/** Hora local (0–23) de un instante en la zona horaria del local. */
+export function localHour(date: Date, timeZone: string): number {
+  return Math.floor(localTime(date, timeZone).minutes / 60);
+}
+
+/** Minutos que la zona horaria está adelantada (+) o atrasada (−) respecto a UTC en ese instante. */
+function offsetMinutes(date: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const get = (type: string): number => Number(parts.find((p) => p.type === type)?.value ?? 0);
+  const asUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"));
+  return Math.round((asUtc - date.getTime()) / 60_000);
+}
+
+/** Inicio y fin del día calendario local que contiene `date`, como instantes UTC. */
+export function localDayRange(date: Date, timeZone: string): { start: Date; end: Date } {
+  const localNow = new Date(date.getTime() + offsetMinutes(date, timeZone) * 60_000);
+  const localMidnight = Date.UTC(localNow.getUTCFullYear(), localNow.getUTCMonth(), localNow.getUTCDate());
+  const start = new Date(localMidnight - offsetMinutes(new Date(localMidnight), timeZone) * 60_000);
+  return { start, end: new Date(start.getTime() + 24 * 60 * 60_000) };
+}
+
 export function isOpenAt(hours: readonly OpeningWindow[], date: Date, timeZone: string): boolean {
   const now = localTime(date, timeZone);
   return hours.some((window) => isInsideWindow(window, now));

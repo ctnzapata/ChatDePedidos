@@ -30,6 +30,15 @@ export interface SaveTurnInput {
 }
 
 const MAX_LOGGED_BODY_LENGTH = 4000;
+const TRANSCRIPT_LIMIT = 200;
+
+export interface ConversationMessage {
+  readonly id: string;
+  readonly direction: "IN" | "OUT";
+  readonly type: string;
+  readonly body: string;
+  readonly createdAt: Date;
+}
 
 export class ConversationRepository {
   constructor(private readonly db: Db) {}
@@ -109,6 +118,19 @@ export class ConversationRepository {
   async setModeForRestaurant(restaurantId: string, conversationId: string, mode: ConversationMode): Promise<boolean> {
     const result = await this.db.conversation.updateMany({ where: { id: conversationId, restaurantId }, data: { mode } });
     return result.count > 0;
+  }
+
+  /** Últimos mensajes de la conversación en orden cronológico; null si no pertenece al restaurante. */
+  async listMessages(restaurantId: string, conversationId: string): Promise<ConversationMessage[] | null> {
+    const conversation = await this.db.conversation.findFirst({ where: { id: conversationId, restaurantId } });
+    if (!conversation) return null;
+    const rows = await this.db.message.findMany({
+      where: { conversationId },
+      orderBy: { createdAt: "desc" },
+      take: TRANSCRIPT_LIMIT,
+      select: { id: true, direction: true, type: true, body: true, createdAt: true },
+    });
+    return rows.reverse();
   }
 
   async listByMode(restaurantId: string, mode: ConversationMode): Promise<HumanConversationSummary[]> {

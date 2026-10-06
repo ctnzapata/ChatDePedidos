@@ -3,6 +3,7 @@ import Fastify, { type FastifyError } from "fastify";
 import { logger as defaultLogger, type Logger } from "../lib/logger.ts";
 import type { RestaurantRepository } from "../repositories/restaurant-repository.ts";
 import type { PanelService } from "../services/panel-service.ts";
+import { adminRoutes, type AdminRoutesOptions } from "./admin-routes.ts";
 import { panelRoutes } from "./panel-routes.ts";
 import { webhookRoutes, type MessageHandler } from "./webhook-routes.ts";
 
@@ -16,6 +17,8 @@ export interface ServerDeps {
   readonly processor: MessageHandler;
   readonly panel: PanelService;
   readonly restaurants: RestaurantRepository;
+  /** API del panel administrativo con Supabase Auth (si se omite, no se registra). */
+  readonly admin?: AdminRoutesOptions;
   readonly logger?: Logger;
 }
 
@@ -63,6 +66,8 @@ export async function buildServer(deps: ServerDeps) {
     panel: deps.panel,
     restaurants: deps.restaurants,
   });
+
+  if (deps.admin) await app.register(adminRoutes, { ...deps.admin, prefix: "/api/admin" });
 
   return app;
 }

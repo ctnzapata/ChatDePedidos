@@ -1,7 +1,11 @@
 import type { OrderStatus } from "../domain/order-status.ts";
 import { errorMessage, logger as defaultLogger, type Logger } from "../lib/logger.ts";
 import { err, ok, type Result } from "../lib/result.ts";
-import type { ConversationRepository, HumanConversationSummary } from "../repositories/conversation-repository.ts";
+import type {
+  ConversationMessage,
+  ConversationRepository,
+  HumanConversationSummary,
+} from "../repositories/conversation-repository.ts";
 import type { OrderRepository, PanelOrder, TransitionError } from "../repositories/order-repository.ts";
 import type { RestaurantRepository } from "../repositories/restaurant-repository.ts";
 import type { Messenger } from "../whatsapp/messenger.ts";
@@ -31,11 +35,36 @@ export class PanelService {
     restaurantId: string,
     orderId: string,
     status: OrderStatus,
+    options: { courierStaffId?: string } = {},
   ): Promise<Result<PanelOrder, TransitionError>> {
-    const result = await this.deps.orders.transition(restaurantId, orderId, status);
+    const result = await this.deps.orders.transition(restaurantId, orderId, status, options);
     if (!result.ok) return result;
     await this.notifyCustomer(restaurantId, result.value);
     return result;
+  }
+
+  /** Entregas en curso del domiciliario. */
+  listDeliveries(restaurantId: string, courierStaffId: string): Promise<PanelOrder[]> {
+    return this.deps.orders.listForCourier(restaurantId, courierStaffId);
+  }
+
+  /** El domiciliario marca como entregado un pedido asignado a él. */
+  async completeDelivery(
+    restaurantId: string,
+    orderId: string,
+    courierStaffId: string,
+  ): Promise<Result<PanelOrder, TransitionError>> {
+    const result = await this.deps.orders.transition(restaurantId, orderId, "DELIVERED", {
+      actingCourierStaffId: courierStaffId,
+    });
+    if (!result.ok) return result;
+    await this.notifyCustomer(restaurantId, result.value);
+    return result;
+  }
+
+  async getConversationMessages(restaurantId: string, conversationId: string): Promise<Result<ConversationMessage[]>> {
+    const messages = await this.deps.conversations.listMessages(restaurantId, conversationId);
+    return messages ? ok(messages) : err("Conversación no encontrada.");
   }
 
   async setAcceptingOrders(restaurantId: string, isAcceptingOrders: boolean): Promise<void> {

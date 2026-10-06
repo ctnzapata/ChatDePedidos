@@ -111,7 +111,27 @@ En Meta, ve a **WhatsApp → Configuration → Webhook**:
 La URL de `cloudflared --url` cambia cada vez que lo inicias. Para una URL fija usa un túnel con nombre (requiere un
 dominio en Cloudflare) o el dominio estático gratuito de ngrok.
 
-### 6. Panel del restaurante
+### 6. Usuarios y roles del panel
+
+Al panel se entra con usuario de Supabase Auth, solo por invitación. Para crear el **primer dueño**:
+
+```bash
+npm run admin:create-owner -- --email tu@correo.com --nombre "Tu nombre"
+```
+
+Si la persona no tenía cuenta, se muestra **una sola vez** una contraseña temporal. Desde ahí el dueño invita al
+resto del equipo por correo.
+
+| Rol | Puede |
+|---|---|
+| Dueño | Todo: pedidos, menú, atención humana, equipo, métricas y ajustes |
+| Personal | Gestionar pedidos (y asignar domiciliario), marcar agotados, pausar pedidos, atención humana |
+| Domiciliario | Ver solo sus entregas asignadas y marcarlas como entregadas |
+
+En Supabase → *Authentication → URL Configuration* agrega `ADMIN_APP_URL` a las **Redirect URLs** para que funcionen
+los enlaces de invitación.
+
+### 7. Panel del restaurante
 
 Abre `http://localhost:3000/panel` (usuario y contraseña de `PANEL_USER` y `PANEL_PASSWORD`). Desde ahí puedes:
 
